@@ -24,7 +24,9 @@ app.layout = html.Div([
             options=[
                 {'label': ' Show top five cities by population', 'value': 'top5'},
                 {'label': ' Show bottom five cities by population', 'value': 'bottom5'},
-                {'label': ' Show top 10 cities by population', 'value': 'top10'}
+                {'label': ' Show top 10 cities by population', 'value': 'top10'},
+                {'label': ' Show largest 10 cities (map)', 'value': 'largest10'},
+                {'label': ' Show smallest 10 cities (map)', 'value': 'smallest10'}
             ],
             value=['top5'],  # Default selection
             style={'fontSize': 16},
@@ -126,6 +128,56 @@ def update_charts(selected_options):
             hovertemplate='<b>%{x}</b><br>Population: %{y:,}<extra></extra>'
         )
         charts.append(dcc.Graph(figure=fig_top10, style={'marginBottom': 30}))
+    
+    # Show largest 10 cities on map
+    if 'largest10' in selected_options:
+        top_10_cities_df = cities_df.head(10)
+        fig_map_large = px.scatter_geo(
+            top_10_cities_df,
+            lat="lat",
+            lon="lon",
+            size='pop',
+            scope='usa',
+            color='name',
+            hover_name='name',
+            hover_data={'pop': ':,', 'lat': False, 'lon': False, 'name': False},
+            title="Largest 10 US Cities by Population (2014) - Geographic View"
+        )
+        fig_map_large.update_layout(
+            title_x=0.5,
+            title_font_size=20,
+            geo=dict(
+                bgcolor='rgba(0,0,0,0)',
+                lakecolor='#4E91D2',
+            ),
+            height=600
+        )
+        charts.append(dcc.Graph(figure=fig_map_large, style={'marginBottom': 30}))
+    
+    # Show smallest 10 cities on map
+    if 'smallest10' in selected_options:
+        bottom_10_cities_df = cities_df.tail(10)
+        fig_map_small = px.scatter_geo(
+            bottom_10_cities_df,
+            lat="lat",
+            lon="lon",
+            size='pop',
+            scope='usa',
+            color='name',
+            hover_name='name',
+            hover_data={'pop': ':,', 'lat': False, 'lon': False, 'name': False},
+            title="Smallest 10 US Cities by Population (2014) - Geographic View"
+        )
+        fig_map_small.update_layout(
+            title_x=0.5,
+            title_font_size=20,
+            geo=dict(
+                bgcolor='rgba(0,0,0,0)',
+                lakecolor='#4E91D2',
+            ),
+            height=600
+        )
+        charts.append(dcc.Graph(figure=fig_map_small, style={'marginBottom': 30}))
     
     return charts
 
