@@ -164,19 +164,46 @@ app.layout = html.Div([
         'margin': '0 auto 30px auto'
     }),
     
+    html.Div([
+        html.Label("Number of Top Cities to Display:", 
+                   style={'fontSize': 18, 'fontWeight': 'bold', 'marginBottom': 15}),
+        dcc.Slider(
+            id='city-slider',
+            min=1,
+            max=20,
+            step=1,
+            value=10,  # Default value
+            marks={i: str(i) for i in range(1, 21)},
+            tooltip={"placement": "bottom", "always_visible": True}
+        ),
+        html.Div(id='slider-output', style={'textAlign': 'center', 'marginTop': 15, 'fontSize': 16, 'color': '#34495e'})
+    ], style={
+        'marginBottom': 30, 
+        'padding': '20px',
+        'backgroundColor': '#fff3cd',
+        'borderRadius': '10px',
+        'maxWidth': '700px',
+        'margin': '0 auto 30px auto'
+    }),
+    
     html.Div(id='charts-container', style={'padding': '20px'})
     
 ], style={'fontFamily': 'Arial, sans-serif', 'padding': '20px'})
 
-# Callback to update the charts based on checklist and dropdown selection
+# Callback to update the charts based on checklist, dropdown, and slider
 @app.callback(
     Output('charts-container', 'children'),
+    Output('slider-output', 'children'),
     Input('display-checklist', 'value'),
-    Input('city-dropdown', 'value')
+    Input('city-dropdown', 'value'),
+    Input('city-slider', 'value')
 )
-def update_charts(selected_options, selected_cities):
-    """Update displayed charts based on checkbox and dropdown selections."""
+def update_charts(selected_options, selected_cities, slider_value):
+    """Update displayed charts based on checkbox, dropdown, and slider selections."""
     charts = []
+    
+    # Update slider output text
+    slider_text = f"Displaying top {slider_value} cities"
     
     # Check if user has selected specific cities from dropdown
     if selected_cities and len(selected_cities) > 0:
@@ -198,6 +225,25 @@ def update_charts(selected_options, selected_cities):
         )
         charts.append(dcc.Graph(figure=fig_map, style={'marginBottom': 30}))
     
+    # Process slider to show top N cities (bar chart and map)
+    if slider_value:
+        top_n_df = cities_df.head(slider_value)
+        
+        # Create bar chart for slider selection
+        fig_slider_bar = create_bar_chart(
+            top_n_df,
+            f'Top {slider_value} Most Populous US Cities (2014)',
+            '#f39c12'
+        )
+        charts.append(dcc.Graph(figure=fig_slider_bar, style={'marginBottom': 30}))
+        
+        # Create map for slider selection
+        fig_slider_map = create_geo_map(
+            top_n_df,
+            f'Top {slider_value} US Cities - Geographic View'
+        )
+        charts.append(dcc.Graph(figure=fig_slider_map, style={'marginBottom': 30}))
+    
     # Process checkbox selections
     if selected_options:
         # Iterate through selected options and create appropriate charts
@@ -216,10 +262,11 @@ def update_charts(selected_options, selected_cities):
     
     # If nothing is selected, show a message
     if not charts:
-        return html.Div("Please select at least one option from the checkboxes or choose specific cities from the dropdown.", 
-                       style={'textAlign': 'center', 'fontSize': 18, 'color': '#7f8c8d'})
+        return (html.Div("Please select at least one option from the checkboxes, choose specific cities from the dropdown, or use the slider.", 
+                       style={'textAlign': 'center', 'fontSize': 18, 'color': '#7f8c8d'}), 
+                slider_text)
     
-    return charts
+    return charts, slider_text
 
 if __name__ == '__main__':
     app.run_server(debug=True)
