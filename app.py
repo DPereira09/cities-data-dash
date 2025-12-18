@@ -11,6 +11,109 @@ URL = "https://raw.githubusercontent.com/plotly/datasets/refs/heads/master/2014_
 cities_df = pd.read_csv(URL)
 cities_df.sort_values(by='pop', ascending=False, inplace=True)
 
+# Helper function to filter data based on checkbox selection
+def filter_by_checkboxes(option):
+    """
+    Filter cities dataframe based on checkbox option.
+    
+    Args:
+        option (str): The checkbox value ('top5', 'bottom5', 'top10', 'largest10', 'smallest10')
+    
+    Returns:
+        tuple: (filtered_dataframe, chart_type, title, color)
+    """
+    filters = {
+        'top5': {
+            'data': cities_df.head(5),
+            'type': 'bar',
+            'title': 'Top 5 Most Populous US Cities (2014)',
+            'color': '#3498db'
+        },
+        'bottom5': {
+            'data': cities_df.tail(5),
+            'type': 'bar',
+            'title': 'Bottom 5 Least Populous US Cities (2014)',
+            'color': '#e74c3c'
+        },
+        'top10': {
+            'data': cities_df.head(10),
+            'type': 'bar',
+            'title': 'Top 10 Most Populous US Cities (2014)',
+            'color': '#2ecc71'
+        },
+        'largest10': {
+            'data': cities_df.head(10),
+            'type': 'map',
+            'title': 'Largest 10 US Cities by Population (2014) - Geographic View',
+            'color': None
+        },
+        'smallest10': {
+            'data': cities_df.tail(10),
+            'type': 'map',
+            'title': 'Smallest 10 US Cities by Population (2014) - Geographic View',
+            'color': None
+        }
+    }
+    
+    filter_config = filters.get(option)
+    if filter_config:
+        return (
+            filter_config['data'],
+            filter_config['type'],
+            filter_config['title'],
+            filter_config['color']
+        )
+    return None, None, None, None
+
+# Helper function to create bar chart
+def create_bar_chart(df, title, color):
+    """Create a bar chart figure."""
+    fig = px.bar(
+        df, 
+        x='name', 
+        y='pop',
+        title=title,
+        labels={'name': 'City', 'pop': 'Population'},
+        color_discrete_sequence=[color]
+    )
+    fig.update_layout(
+        xaxis_title="City Name",
+        yaxis_title="Population",
+        title_x=0.5,
+        title_font_size=20,
+        showlegend=False,
+        hovermode='x'
+    )
+    fig.update_traces(
+        hovertemplate='<b>%{x}</b><br>Population: %{y:,}<extra></extra>'
+    )
+    return fig
+
+# Helper function to create geo map
+def create_geo_map(df, title):
+    """Create a scatter geo map figure."""
+    fig = px.scatter_geo(
+        df,
+        lat="lat",
+        lon="lon",
+        size='pop',
+        scope='usa',
+        color='name',
+        hover_name='name',
+        hover_data={'pop': ':,', 'lat': False, 'lon': False, 'name': False},
+        title=title
+    )
+    fig.update_layout(
+        title_x=0.5,
+        title_font_size=20,
+        geo=dict(
+            bgcolor='rgba(0,0,0,0)',
+            lakecolor='#4E91D2',
+        ),
+        height=600
+    )
+    return fig
+
 # App layout
 app.layout = html.Div([
     html.H1("US Cities Population Dashboard (2014)", 
@@ -51,133 +154,26 @@ app.layout = html.Div([
     Input('display-checklist', 'value')
 )
 def update_charts(selected_options):
+    """Update displayed charts based on checkbox selections."""
     charts = []
     
     if not selected_options:
         return html.Div("Please select at least one option above.", 
                        style={'textAlign': 'center', 'fontSize': 18, 'color': '#7f8c8d'})
     
-    # Show top 5 cities
-    if 'top5' in selected_options:
-        top_5_df = cities_df.head(5)
-        fig_top5 = px.bar(
-            top_5_df, 
-            x='name', 
-            y='pop',
-            title="Top 5 Most Populous US Cities (2014)",
-            labels={'name': 'City', 'pop': 'Population'},
-            color_discrete_sequence=['#3498db']
-        )
-        fig_top5.update_layout(
-            xaxis_title="City Name",
-            yaxis_title="Population",
-            title_x=0.5,
-            title_font_size=20,
-            showlegend=False,
-            hovermode='x'
-        )
-        fig_top5.update_traces(
-            hovertemplate='<b>%{x}</b><br>Population: %{y:,}<extra></extra>'
-        )
-        charts.append(dcc.Graph(figure=fig_top5, style={'marginBottom': 30}))
-    
-    # Show bottom 5 cities
-    if 'bottom5' in selected_options:
-        bottom_5_df = cities_df.tail(5)
-        fig_bottom5 = px.bar(
-            bottom_5_df, 
-            x='name', 
-            y='pop',
-            title="Bottom 5 Least Populous US Cities (2014)",
-            labels={'name': 'City', 'pop': 'Population'},
-            color_discrete_sequence=['#e74c3c']
-        )
-        fig_bottom5.update_layout(
-            xaxis_title="City Name",
-            yaxis_title="Population",
-            title_x=0.5,
-            title_font_size=20,
-            showlegend=False,
-            hovermode='x'
-        )
-        fig_bottom5.update_traces(
-            hovertemplate='<b>%{x}</b><br>Population: %{y:,}<extra></extra>'
-        )
-        charts.append(dcc.Graph(figure=fig_bottom5, style={'marginBottom': 30}))
-    
-    # Show top 10 cities
-    if 'top10' in selected_options:
-        top_10_df = cities_df.head(10)
-        fig_top10 = px.bar(
-            top_10_df, 
-            x='name', 
-            y='pop',
-            title="Top 10 Most Populous US Cities (2014)",
-            labels={'name': 'City', 'pop': 'Population'},
-            color_discrete_sequence=['#2ecc71']
-        )
-        fig_top10.update_layout(
-            xaxis_title="City Name",
-            yaxis_title="Population",
-            title_x=0.5,
-            title_font_size=20,
-            showlegend=False,
-            hovermode='x'
-        )
-        fig_top10.update_traces(
-            hovertemplate='<b>%{x}</b><br>Population: %{y:,}<extra></extra>'
-        )
-        charts.append(dcc.Graph(figure=fig_top10, style={'marginBottom': 30}))
-    
-    # Show largest 10 cities on map
-    if 'largest10' in selected_options:
-        top_10_cities_df = cities_df.head(10)
-        fig_map_large = px.scatter_geo(
-            top_10_cities_df,
-            lat="lat",
-            lon="lon",
-            size='pop',
-            scope='usa',
-            color='name',
-            hover_name='name',
-            hover_data={'pop': ':,', 'lat': False, 'lon': False, 'name': False},
-            title="Largest 10 US Cities by Population (2014) - Geographic View"
-        )
-        fig_map_large.update_layout(
-            title_x=0.5,
-            title_font_size=20,
-            geo=dict(
-                bgcolor='rgba(0,0,0,0)',
-                lakecolor='#4E91D2',
-            ),
-            height=600
-        )
-        charts.append(dcc.Graph(figure=fig_map_large, style={'marginBottom': 30}))
-    
-    # Show smallest 10 cities on map
-    if 'smallest10' in selected_options:
-        bottom_10_cities_df = cities_df.tail(10)
-        fig_map_small = px.scatter_geo(
-            bottom_10_cities_df,
-            lat="lat",
-            lon="lon",
-            size='pop',
-            scope='usa',
-            color='name',
-            hover_name='name',
-            hover_data={'pop': ':,', 'lat': False, 'lon': False, 'name': False},
-            title="Smallest 10 US Cities by Population (2014) - Geographic View"
-        )
-        fig_map_small.update_layout(
-            title_x=0.5,
-            title_font_size=20,
-            geo=dict(
-                bgcolor='rgba(0,0,0,0)',
-                lakecolor='#4E91D2',
-            ),
-            height=600
-        )
-        charts.append(dcc.Graph(figure=fig_map_small, style={'marginBottom': 30}))
+    # Iterate through selected options and create appropriate charts
+    for option in selected_options:
+        df, chart_type, title, color = filter_by_checkboxes(option)
+        
+        if df is not None:
+            if chart_type == 'bar':
+                fig = create_bar_chart(df, title, color)
+            elif chart_type == 'map':
+                fig = create_geo_map(df, title)
+            else:
+                continue
+            
+            charts.append(dcc.Graph(figure=fig, style={'marginBottom': 30}))
     
     return charts
 
