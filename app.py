@@ -144,36 +144,80 @@ app.layout = html.Div([
         'margin': '0 auto 30px auto'
     }),
     
+    html.Div([
+        html.Label("Select Specific Cities:", 
+                   style={'fontSize': 18, 'fontWeight': 'bold', 'marginBottom': 10}),
+        dcc.Dropdown(
+            id='city-dropdown',
+            options=[{'label': city, 'value': city} for city in cities_df['name'].tolist()],
+            value=[],  # No default selection
+            multi=True,  # Allow multiple selections
+            placeholder="Select one or more cities...",
+            style={'fontSize': 14}
+        )
+    ], style={
+        'marginBottom': 30, 
+        'padding': '20px',
+        'backgroundColor': '#e8f4f8',
+        'borderRadius': '10px',
+        'maxWidth': '700px',
+        'margin': '0 auto 30px auto'
+    }),
+    
     html.Div(id='charts-container', style={'padding': '20px'})
     
 ], style={'fontFamily': 'Arial, sans-serif', 'padding': '20px'})
 
-# Callback to update the charts based on checklist selection
+# Callback to update the charts based on checklist and dropdown selection
 @app.callback(
     Output('charts-container', 'children'),
-    Input('display-checklist', 'value')
+    Input('display-checklist', 'value'),
+    Input('city-dropdown', 'value')
 )
-def update_charts(selected_options):
-    """Update displayed charts based on checkbox selections."""
+def update_charts(selected_options, selected_cities):
+    """Update displayed charts based on checkbox and dropdown selections."""
     charts = []
     
-    if not selected_options:
-        return html.Div("Please select at least one option above.", 
-                       style={'textAlign': 'center', 'fontSize': 18, 'color': '#7f8c8d'})
-    
-    # Iterate through selected options and create appropriate charts
-    for option in selected_options:
-        df, chart_type, title, color = filter_by_checkboxes(option)
+    # Check if user has selected specific cities from dropdown
+    if selected_cities and len(selected_cities) > 0:
+        # Filter dataframe for selected cities
+        custom_df = cities_df[cities_df['name'].isin(selected_cities)]
         
-        if df is not None:
-            if chart_type == 'bar':
-                fig = create_bar_chart(df, title, color)
-            elif chart_type == 'map':
-                fig = create_geo_map(df, title)
-            else:
-                continue
+        # Create a bar chart for selected cities
+        fig_bar = create_bar_chart(
+            custom_df, 
+            f'Selected Cities Population ({len(selected_cities)} cities)', 
+            '#9b59b6'
+        )
+        charts.append(dcc.Graph(figure=fig_bar, style={'marginBottom': 30}))
+        
+        # Create a map for selected cities
+        fig_map = create_geo_map(
+            custom_df, 
+            f'Selected Cities - Geographic View ({len(selected_cities)} cities)'
+        )
+        charts.append(dcc.Graph(figure=fig_map, style={'marginBottom': 30}))
+    
+    # Process checkbox selections
+    if selected_options:
+        # Iterate through selected options and create appropriate charts
+        for option in selected_options:
+            df, chart_type, title, color = filter_by_checkboxes(option)
             
-            charts.append(dcc.Graph(figure=fig, style={'marginBottom': 30}))
+            if df is not None:
+                if chart_type == 'bar':
+                    fig = create_bar_chart(df, title, color)
+                elif chart_type == 'map':
+                    fig = create_geo_map(df, title)
+                else:
+                    continue
+                
+                charts.append(dcc.Graph(figure=fig, style={'marginBottom': 30}))
+    
+    # If nothing is selected, show a message
+    if not charts:
+        return html.Div("Please select at least one option from the checkboxes or choose specific cities from the dropdown.", 
+                       style={'textAlign': 'center', 'fontSize': 18, 'color': '#7f8c8d'})
     
     return charts
 
